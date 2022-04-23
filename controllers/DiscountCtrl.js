@@ -32,6 +32,9 @@ const discountCtrl = {
       console.log(voucherCode)
       const voucher = await Vouchers.findOne({ voucherCode })
       if (!voucher) return res.status(400).json({ msg: 'Voucher invalid' })
+      if (voucher.voucherExpire.toISOString() < new Date().toISOString()) {
+        return res.status(400).json({ msg: 'Voucher expired.' })
+      }
       res.json({ msg: 'Voucher activated!', voucher })
     } catch (err) {
       return res.status(500).json({ msg: err.message })
@@ -104,7 +107,29 @@ const discountCtrl = {
         voucherProductCategory,
         voucherProductAuthor,
         modifiedBy,
+        voucherEffect,
+        voucherExpire,
       } = req.body
+      console.log(voucherEffect, voucherExpire)
+      const voucher = await Vouchers.findById(req.params.id)
+      if (voucherEffect >= voucherExpire) {
+        return res
+          .status(400)
+          .json({ msg: 'Invalid date. Effect must be greater than Expire' })
+      }
+      // if (voucher.voucherEffect) {
+      //   if (voucherExpire <= voucher.voucherEffect.toISOString()) {
+      //     return res
+      //       .status(400)
+      //       .json({ msg: 'Invalid date. Expire must be greater than effect' })
+      //   }
+      // }
+
+      // if (voucherExpire < new Date().toISOString()) {
+      //   return res
+      //     .status(400)
+      //     .json({ msg: 'Invalid date. Expire must be greater than at now' })
+      // }
 
       await Vouchers.findOneAndUpdate(
         { _id: req.params.id },
@@ -118,6 +143,8 @@ const discountCtrl = {
           voucherProductCategory,
           voucherProductAuthor,
           modifiedBy,
+          voucherEffect,
+          voucherExpire,
         }
       )
 

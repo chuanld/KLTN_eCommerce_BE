@@ -15,6 +15,8 @@ const VoucherSchema = new mongoose.Schema(
     voucherProductAuthor: Array,
     createdBy: String,
     modifiedBy: String,
+    voucherEffect: Date,
+    voucherExpire: Date,
   },
   {
     timestamps: true,
