@@ -51,12 +51,13 @@ const io = require('socket.io')(http)
 
 //Routes
 app.use('/user', require('./routes/userRouter'))
+app.use('/api', require('./routes/discountRouter'))
 app.use('/api', require('./routes/categoryRouter'))
 app.use('/api', require('./routes/uploadImg'))
 app.use('/api', require('./routes/productRouter'))
 app.use('/api', require('./routes/orderRouter'))
 app.use('/api', require('./routes/commentRouter'))
-app.use('/api', require('./routes/discountRouter'))
+
 
 //Connet SocketIO
 let users = []
