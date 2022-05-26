@@ -42,6 +42,7 @@ const userCtrl = {
       if (user) {
         return res.status(400).json({ msg: 'The email is already exist' }) //Check exist
       }
+      console.log(password)
       //Check password
       if (password.length < 6)
         return res
