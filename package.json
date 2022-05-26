@@ -4,7 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "node server/server.js",
+    "start": "node server.js",
     "server": "nodemon server.js",
     "server-install": "npm install",
     "dev": "nodemon server.js",
