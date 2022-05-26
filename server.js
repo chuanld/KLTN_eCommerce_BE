@@ -42,7 +42,9 @@ app.use(
     useTempFiles: true,
   })
 )
-
+app.get('/', (req, res) => {
+  res.json({ msg: 'Hello, Book Store Chuangg!' })
+})
 //socket
 const http = require('http').createServer(app)
 const io = require('socket.io')(http)
