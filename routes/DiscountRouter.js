@@ -8,5 +8,6 @@ router
   .post(auth, discountCtrl.createVoucher);
 
 router.patch("/discount/:id", auth, discountCtrl.updateVoucher);
+router.delete("/discount/:id", auth, discountCtrl.deleteVoucher);
 router.post("/discount/checkvalid", discountCtrl.checkValidDiscount);
 module.exports = router;
