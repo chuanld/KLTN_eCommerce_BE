@@ -3,7 +3,7 @@ const productCtrl = require("../controllers/productCtrl");
 const auth = require("../middleware/authen");
 const authAdmin = require("../middleware/authenAdmin");
 
-router.get("/allproducts", auth, productCtrl.getAllProducts);
+router.get("/allproducts", productCtrl.getAllProducts);
 router
   .route("/products")
   .get(productCtrl.getProducts)
