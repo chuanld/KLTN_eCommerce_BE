@@ -8,4 +8,7 @@ router
   .get(auth, authAdmin, orderCtrl.getOrder)
   .post(auth, orderCtrl.createOrder);
 router.patch("/order/:id", auth, authAdmin, orderCtrl.updateStatus);
+
+router.post("/payment/create_payment_url", auth, orderCtrl.payVnpay);
+router.get("/payment/vnpay_ipn", auth, orderCtrl.payVnpayCallback);
 module.exports = router;

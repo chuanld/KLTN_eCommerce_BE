@@ -1,26 +1,26 @@
-const router = require('express').Router()
-const productCtrl = require('../controllers/productCtrl')
-const auth = require('../middleware/authen')
-const authAdmin = require('../middleware/authenAdmin')
+const router = require("express").Router();
+const productCtrl = require("../controllers/productCtrl");
+const auth = require("../middleware/authen");
+const authAdmin = require("../middleware/authenAdmin");
 
-router.get('/allproducts', auth, authAdmin, productCtrl.getAllProducts)
+router.get("/allproducts", auth, productCtrl.getAllProducts);
 router
-  .route('/products')
+  .route("/products")
   .get(productCtrl.getProducts)
-  .post(auth, authAdmin, productCtrl.createProduct)
+  .post(auth, authAdmin, productCtrl.createProduct);
 
 router
-  .route('/products/:id')
+  .route("/products/:id")
   .get(productCtrl.getProductById)
   .delete(auth, authAdmin, productCtrl.deleteProduct)
-  .put(auth, authAdmin, productCtrl.updateProduct)
+  .put(auth, authAdmin, productCtrl.updateProduct);
 
 router
-  .route('/banners')
+  .route("/banners")
   .post(productCtrl.createBanner)
-  .get(productCtrl.getListBanners)
+  .get(productCtrl.getListBanners);
 
-router.patch('/rating/:id', productCtrl.reviews)
+router.patch("/rating/:id", productCtrl.reviews);
 // router.patch('/products/discount/:id', productCtrl.discount)
-router.patch('/products/event_disc', productCtrl.evenDiscount)
-module.exports = router
+router.patch("/products/event_disc", productCtrl.evenDiscount);
+module.exports = router;
