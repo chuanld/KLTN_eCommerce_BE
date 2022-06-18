@@ -73,7 +73,7 @@ const userCtrl = {
 */
       const activationtoken = createActivationToken(newUser)
 
-      const url = `${CLIENT_URL}/user/activate/${activationtoken}`
+      const url = `${CLIENT_URL}/account/activate/${activationtoken}`
       sendMail(
         email,
         url,
@@ -97,6 +97,7 @@ const userCtrl = {
         activationtoken,
         process.env.ACTIVATE_TOKEN_SECRET
       )
+      console.log(activationtoken, user)
 
       const { name, email, address, password } = user
 
@@ -121,8 +122,13 @@ const userCtrl = {
         httpOnly: true,
         path: '/user/refresh_token',
       })
+      const userData = await Users.findOne({ email })
 
-      res.json({ msg: 'Account has been activated!', accesstoken })
+      res.json({
+        msg: 'Account has been activated!',
+        accesstoken,
+        user: userData,
+      })
     } catch (err) {
       return res.status(500).json({ msg: err.message })
     }
