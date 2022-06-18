@@ -26,6 +26,10 @@ const orderSchema = new mongoose.Schema(
       type: Array,
       default: [],
     },
+    voucher: {
+      type: Object,
+      default: "not applied",
+    },
     option: {
       type: Object,
       required: true,
