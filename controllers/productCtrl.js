@@ -205,6 +205,25 @@ const productCtrl = {
       return res.status(500).json({ msg: err.message })
     }
   },
+  updatePriceAllProduct: async (req, res) => {
+    try {
+      const products = await Products.find()
+      if (products.length === 0) return res.status(400).json({ msg: 'fail' })
+      // products.forEach((product)=>{
+      //   await Products.findByIdAndUpdate(
+      //     { _id: product._id },
+      //     { price: product.price * 1000 },
+      //   )
+      // })
+      for (const product of products) {
+        await Products.findByIdAndUpdate(
+          { _id: product._id },
+          { price: product.price * 1000 }
+        )
+      }
+      res.json({ msg: 'success' })
+    } catch (err) {}
+  },
   evenDiscount: async (req, res) => {
     try {
       const { action } = req.body.formValues

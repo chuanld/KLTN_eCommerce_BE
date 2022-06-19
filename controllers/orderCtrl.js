@@ -1,7 +1,7 @@
-const Orders = require("../models/orderModel");
-const Users = require("../models/userModel");
-const Products = require("../models/productModel");
-const Vouchers = require("../models/voucherModel");
+const Orders = require('../models/orderModel')
+const Users = require('../models/userModel')
+const Products = require('../models/productModel')
+const Vouchers = require('../models/voucherModel')
 // import dateFormat, { masks } from "dateformat";
 
 const orderCtrl = {
@@ -10,13 +10,13 @@ const orderCtrl = {
       const features = new OrdersFeatures(Orders.find(), req.query)
         .filtering()
         .sorting()
-        .paginating();
+        .paginating()
       // const countTotal
       const countCalc = new OrdersFeatures(Orders.find(), req.query)
         .filtering()
-        .sorting();
-      const countTotal = await countCalc.query.count();
-      const orders = await features.query;
+        .sorting()
+      const countTotal = await countCalc.query.count()
+      const orders = await features.query
       //
       // const orders = await Orders.find();
       res.json({
@@ -24,20 +24,20 @@ const orderCtrl = {
         totalResult: countTotal,
         result: orders.length,
         orders,
-      });
+      })
     } catch (err) {
-      return res.status(500).json({ msg: err.message });
+      return res.status(500).json({ msg: err.message })
     }
   },
   createOrder: async (req, res) => {
     try {
-      const user = await Users.findById(req.user.id).select("name email");
-      if (!user) return res.status(400).json({ msg: "User does not exist" });
-      const { cart, orderID, address, name, option, voucherCode } = req.body;
-      console.log("---------------------");
+      const user = await Users.findById(req.user.id).select('name email')
+      if (!user) return res.status(400).json({ msg: 'User does not exist' })
+      const { cart, orderID, address, name, option, voucherCode } = req.body
+      console.log('---------------------')
       const voucher = await Vouchers.findOne({ voucherCode }).select(
-        "_id voucherCode voucherDiscount voucherEffect voucherExpire"
-      );
+        '_id voucherCode voucherDiscount voucherEffect voucherExpire'
+      )
       // console.log(voucher?.voucherDiscount);
       // if (voucher) {
       //   cart.forEach((product) => {
@@ -77,22 +77,22 @@ const orderCtrl = {
       //   });
       // }
 
-      let total = 0;
+      let total = 0
       if (cart) {
         total = cart.reduce((prev, item) => {
           return item.priceDiscount
             ? prev + item.priceDiscount * item.quantity
             : // : item.discount < 100
               // ? prev + ((item.price * (100 - item.discount)) / 100) * item.quantity
-              prev + ((item.price * item.discount) / 100) * item.quantity;
-        }, 0);
+              prev + ((item.price * item.discount) / 100) * item.quantity
+        }, 0)
       }
-      console.log(orderID, address, name, option, voucherCode);
-      let status = 0;
-      if (orderID.includes("PAYID") || orderID.includes("VnPay")) {
-        status = 5;
+      console.log(orderID, address, name, option, voucherCode)
+      let status = 0
+      if (orderID.includes('PAYID') || orderID.includes('VnPay')) {
+        status = 5
       }
-      const { _id, email } = user;
+      const { _id, email } = user
       const newOrder = new Orders({
         user_id: _id,
         name,
@@ -101,150 +101,150 @@ const orderCtrl = {
         orderID,
         address,
         option,
-        voucher: voucher ?? "not applied",
+        voucher: voucher ?? 'not applied',
         status: status,
-      });
+      })
 
       cart.filter((item) => {
-        return sold(item._id, item.quantity, item.sold);
-      });
-      await newOrder.save();
-      res.json({ msg: "Payment success", cart });
+        return sold(item._id, item.quantity, item.sold)
+      })
+      await newOrder.save()
+      res.json({ msg: 'Payment success', cart })
     } catch (err) {
-      return res.status(500).json({ msg: err.message });
+      return res.status(500).json({ msg: err.message })
     }
   },
   updateStatus: async (req, res) => {
     try {
-      const { status } = req.body;
-      const order = await Orders.findOne({ _id: req.params.id });
+      const { status } = req.body
+      const order = await Orders.findOne({ _id: req.params.id })
       if (!order)
-        return res.status(400).json({ msg: "Update fail, check again." });
+        return res.status(400).json({ msg: 'Update fail, check again.' })
       if (status < order.status)
-        return res.status(400).json({ msg: "Cannot return previous" });
+        return res.status(400).json({ msg: 'Cannot return previous' })
       if (
         (status < order.status && order.status === 1) ||
         (status > order.status && order.status === 1)
       ) {
-        return res.status(400).json({ msg: "Order is invalid" });
+        return res.status(400).json({ msg: 'Order is invalid' })
       }
-      await Orders.findOneAndUpdate({ _id: req.params.id }, { status: status });
+      await Orders.findOneAndUpdate({ _id: req.params.id }, { status: status })
       res.json({
         msg: `OrderID ${order.orderID} has update success`,
-      });
+      })
     } catch (err) {
-      return res.status(500).json({ msg: err.message });
+      return res.status(500).json({ msg: err.message })
     }
   },
   payVnpay: async (req, res) => {
     try {
       var ipAddr =
-        req.headers["x-forwarded-for"] ||
+        req.headers['x-forwarded-for'] ||
         req.connection.remoteAddress ||
         req.socket.remoteAddress ||
-        req.connection.socket.remoteAddress;
+        req.connection.socket.remoteAddress
 
-      var tmnCode = process.env.vnp_TmnCode;
-      var secretKey = process.env.vnp_HashSecret;
-      var vnpUrl = process.env.vnp_Url;
-      var returnUrl = process.env.vnp_ReturnUrl;
+      var tmnCode = process.env.vnp_TmnCode
+      var secretKey = process.env.vnp_HashSecret
+      var vnpUrl = process.env.vnp_Url
+      var returnUrl = process.env.vnp_ReturnUrl
 
-      var date = new Date();
+      var date = new Date()
 
-      var createDate = dateFormat(date, "yyyymmddHHmmss");
-      var orderId = time(date, "HHmmss");
-      var amount = req.body.amount;
-      var bankCode = req.body.bankCode;
-      var voucherCode = req.body.voucherCode;
-      var orderInfo = req.body.orderDescription;
-      var orderType = req.body.orderType;
-      var locale = req.body.language;
-      if (locale === null || locale === "") {
-        locale = "vn";
+      var createDate = dateFormat(date, 'yyyymmddHHmmss')
+      var orderId = time(date, 'HHmmss')
+      var amount = req.body.amount
+      var bankCode = req.body.bankCode
+      var voucherCode = req.body.voucherCode
+      var orderInfo = req.body.orderDescription
+      var orderType = req.body.orderType
+      var locale = req.body.language
+      if (locale === null || locale === '') {
+        locale = 'vn'
       }
-      var currCode = "USD";
-      var vnp_Params = {};
-      vnp_Params["vnp_Version"] = "2.1.0";
-      vnp_Params["vnp_Command"] = "pay";
-      vnp_Params["vnp_TmnCode"] = tmnCode;
+      var currCode = 'USD'
+      var vnp_Params = {}
+      vnp_Params['vnp_Version'] = '2.1.0'
+      vnp_Params['vnp_Command'] = 'pay'
+      vnp_Params['vnp_TmnCode'] = tmnCode
       // vnp_Params['vnp_Merchant'] = ''
-      vnp_Params["vnp_Locale"] = "en";
-      vnp_Params["vnp_CurrCode"] = currCode;
-      vnp_Params["vnp_TxnRef"] = orderId;
-      vnp_Params["vnp_OrderInfo"] = "Paid by vnpay";
+      vnp_Params['vnp_Locale'] = 'en'
+      vnp_Params['vnp_CurrCode'] = currCode
+      vnp_Params['vnp_TxnRef'] = orderId
+      vnp_Params['vnp_OrderInfo'] = 'Paid by vnpay'
       if (
         orderType !== null &&
-        orderType !== "" &&
-        orderType !== "undefined" &&
+        orderType !== '' &&
+        orderType !== 'undefined' &&
         req.body.orderType
       ) {
-        vnp_Params["vnp_OrderType"] = orderType;
+        vnp_Params['vnp_OrderType'] = orderType
       }
-      vnp_Params["vnp_Amount"] = amount * 100 * 22;
-      vnp_Params["vnp_ReturnUrl"] = `${returnUrl}?voucherCode=${voucherCode}`;
-      vnp_Params["vnp_IpAddr"] = ipAddr;
-      vnp_Params["vnp_CreateDate"] = createDate;
+      vnp_Params['vnp_Amount'] = amount * 100
+      vnp_Params['vnp_ReturnUrl'] = `${returnUrl}?voucherCode=${voucherCode}`
+      vnp_Params['vnp_IpAddr'] = ipAddr
+      vnp_Params['vnp_CreateDate'] = createDate
       if (
         bankCode !== null &&
-        bankCode !== "" &&
-        bankCode !== "undefined" &&
+        bankCode !== '' &&
+        bankCode !== 'undefined' &&
         req.body.bankCode
       ) {
-        vnp_Params["vnp_BankCode"] = bankCode;
+        vnp_Params['vnp_BankCode'] = bankCode
       }
 
-      vnp_Params = sortObject(vnp_Params);
+      vnp_Params = sortObject(vnp_Params)
 
-      var querystring = require("qs");
-      var signData = querystring.stringify(vnp_Params, { encode: false });
-      var crypto = require("crypto");
-      var hmac = crypto.createHmac("sha512", secretKey);
-      var signed = hmac.update(new Buffer(signData, "utf-8")).digest("hex");
-      vnp_Params["vnp_SecureHash"] = signed;
-      vnpUrl += "?" + querystring.stringify(vnp_Params, { encode: false });
-      res.json({ vnpUrl: vnpUrl });
+      var querystring = require('qs')
+      var signData = querystring.stringify(vnp_Params, { encode: false })
+      var crypto = require('crypto')
+      var hmac = crypto.createHmac('sha512', secretKey)
+      var signed = hmac.update(new Buffer(signData, 'utf-8')).digest('hex')
+      vnp_Params['vnp_SecureHash'] = signed
+      vnpUrl += '?' + querystring.stringify(vnp_Params, { encode: false })
+      res.json({ vnpUrl: vnpUrl })
     } catch (err) {
-      return res.status(500).json({ msg: err.message });
+      return res.status(500).json({ msg: err.message })
     }
   },
   payVnpayCallback: async (req, res) => {
     try {
-      var vnp_Params = req.query;
-      var secureHash = vnp_Params["vnp_SecureHash"];
+      var vnp_Params = req.query
+      var secureHash = vnp_Params['vnp_SecureHash']
 
-      delete vnp_Params["vnp_SecureHash"];
-      delete vnp_Params["vnp_SecureHashType"];
+      delete vnp_Params['vnp_SecureHash']
+      delete vnp_Params['vnp_SecureHashType']
 
-      vnp_Params = sortObject(vnp_Params);
+      vnp_Params = sortObject(vnp_Params)
       // var config = require("config");
-      var secretKey = process.end.vnp_HashSecret;
-      var querystring = require("qs");
-      var signData = querystring.stringify(vnp_Params, { encode: false });
-      var crypto = require("crypto");
-      var hmac = crypto.createHmac("sha512", secretKey);
-      var signed = hmac.update(new Buffer(signData, "utf-8")).digest("hex");
+      var secretKey = process.end.vnp_HashSecret
+      var querystring = require('qs')
+      var signData = querystring.stringify(vnp_Params, { encode: false })
+      var crypto = require('crypto')
+      var hmac = crypto.createHmac('sha512', secretKey)
+      var signed = hmac.update(new Buffer(signData, 'utf-8')).digest('hex')
 
       if (secureHash === signed) {
-        var orderId = vnp_Params["vnp_TxnRef"];
-        var rspCode = vnp_Params["vnp_ResponseCode"];
+        var orderId = vnp_Params['vnp_TxnRef']
+        var rspCode = vnp_Params['vnp_ResponseCode']
         //Kiem tra du lieu co hop le khong, cap nhat trang thai don hang va gui ket qua cho VNPAY theo dinh dang duoi
         // res.status(200).json({ RspCode: "00", Message: "success" });
-        res.json({ vnpUrl: "test" });
+        res.json({ vnpUrl: 'test' })
       } else {
         // res.status(200).json({ RspCode: "97", Message: "Fail checksum" });
-        res.json({ vnpUrl: "test1" });
+        res.json({ vnpUrl: 'test1' })
       }
     } catch (err) {
-      return res.status(500).json({ msg: err.message });
+      return res.status(500).json({ msg: err.message })
     }
   },
   payVnpayReturn: async (req, res) => {
     try {
-      const { id } = req.user;
-      const user = await User.findById(id).select("name email");
-      if (!user) return res.status(400).json({ msg: "User does not exist" });
+      const { id } = req.user
+      const user = await User.findById(id).select('name email')
+      if (!user) return res.status(400).json({ msg: 'User does not exist' })
 
-      const { cart, paymentID, address, status, voucherCode } = req.body;
+      const { cart, paymentID, address, status, voucherCode } = req.body
 
       // var vnp_Params = req.query;
 
@@ -273,10 +273,10 @@ const orderCtrl = {
       //   res.render("success", { code: "97" });
       // }
     } catch (err) {
-      return res.status(500).json({ msg: err.message });
+      return res.status(500).json({ msg: err.message })
     }
   },
-};
+}
 
 const sold = async (id, quantity, oldSold) => {
   await Products.findOneAndUpdate(
@@ -284,89 +284,89 @@ const sold = async (id, quantity, oldSold) => {
     {
       sold: quantity + oldSold,
     }
-  );
-};
+  )
+}
 
 // Filter, sort and paginate
 class OrdersFeatures {
   constructor(query, queryString) {
-    this.query = query;
-    this.queryString = queryString;
+    this.query = query
+    this.queryString = queryString
   }
   filtering() {
-    const queryObj = { ...this.queryString }; //queryString = req.body
-    console.log({ before: queryObj });
+    const queryObj = { ...this.queryString } //queryString = req.body
+    console.log({ before: queryObj })
 
-    const excludedFields = ["count", "page", "sort", "limit"];
-    excludedFields.forEach((el) => delete queryObj[el]);
-    console.log({ after: queryObj });
+    const excludedFields = ['count', 'page', 'sort', 'limit']
+    excludedFields.forEach((el) => delete queryObj[el])
+    console.log({ after: queryObj })
 
-    let queryStr = JSON.stringify(queryObj);
+    let queryStr = JSON.stringify(queryObj)
     queryStr = queryStr.replace(
       /\b(eq|gte|gt|lt|lte|regex)\b/g,
-      (match) => "$" + match
-    );
+      (match) => '$' + match
+    )
 
-    console.log({ queryObj, queryStr });
+    console.log({ queryObj, queryStr })
 
-    this.query.find(JSON.parse(queryStr));
+    this.query.find(JSON.parse(queryStr))
 
-    return this;
+    return this
   }
   sorting() {
     if (this.queryString.sort) {
-      const sortBy = this.queryString.sort.split(",").join("");
-      this.query = this.query.sort(sortBy);
+      const sortBy = this.queryString.sort.split(',').join('')
+      this.query = this.query.sort(sortBy)
     } else {
-      this.query = this.query.sort("-createdAt");
+      this.query = this.query.sort('-createdAt')
     }
-    return this;
+    return this
   }
   paginating() {
-    const page = this.queryString.page * 1 || 1;
-    const limit = this.queryString.limit * 1 || 9;
-    const skip = (page - 1) * limit;
-    this.query = this.query.skip(skip).limit(limit);
-    return this;
+    const page = this.queryString.page * 1 || 1
+    const limit = this.queryString.limit * 1 || 9
+    const skip = (page - 1) * limit
+    this.query = this.query.skip(skip).limit(limit)
+    return this
   }
 }
 function sortObject(obj) {
-  var sorted = {};
-  var str = [];
-  var key;
+  var sorted = {}
+  var str = []
+  var key
   for (key in obj) {
     if (obj.hasOwnProperty(key)) {
-      str.push(encodeURIComponent(key));
+      str.push(encodeURIComponent(key))
     }
   }
-  str.sort();
+  str.sort()
   for (key = 0; key < str.length; key++) {
-    sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+    sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, '+')
   }
-  return sorted;
+  return sorted
 }
 const dateFormat = (date) => {
   let Str =
     date.getFullYear() +
-    "" +
+    '' +
     (date.getMonth() + 1 > 9
       ? date.getMonth() + 1
-      : "0" + (date.getMonth() + 1)) +
-    "" +
-    (date.getDate() > 9 ? date.getDate() : "0" + date.Date()) +
-    "" +
-    (date.getHours() > 9 ? date.getHours() : "0" + date.getHours()) +
-    "" +
+      : '0' + (date.getMonth() + 1)) +
+    '' +
+    (date.getDate() > 9 ? date.getDate() : '0' + date.Date()) +
+    '' +
+    (date.getHours() > 9 ? date.getHours() : '0' + date.getHours()) +
+    '' +
     (date.getMinutes() > 9
       ? date.getMinutes()
-      : "0" + (date.getMinutes() + 1)) +
-    "" +
-    (date.getSeconds() > 9 ? date.getSeconds() : "0" + (date.getSeconds() + 1));
-  return Str;
-};
+      : '0' + (date.getMinutes() + 1)) +
+    '' +
+    (date.getSeconds() > 9 ? date.getSeconds() : '0' + (date.getSeconds() + 1))
+  return Str
+}
 
 const time = (date) => {
-  let Str = date.getHours() + "" + date.getMinutes() + "" + date.getSeconds();
-  return Str;
-};
-module.exports = orderCtrl;
+  let Str = date.getHours() + '' + date.getMinutes() + '' + date.getSeconds()
+  return Str
+}
+module.exports = orderCtrl
