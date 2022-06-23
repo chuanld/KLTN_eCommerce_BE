@@ -156,6 +156,8 @@ const orderCtrl = {
       var amount = req.body.amount;
       var bankCode = req.body.bankCode;
       var voucherCode = req.body.voucherCode;
+      var reveiveName = req.body.name;
+      var receiveAddress = req.body.address;
       var orderInfo = req.body.orderDescription;
       var orderType = req.body.orderType;
       var locale = req.body.language;
@@ -172,6 +174,8 @@ const orderCtrl = {
       vnp_Params["vnp_CurrCode"] = currCode;
       vnp_Params["vnp_TxnRef"] = orderId;
       vnp_Params["vnp_OrderInfo"] = "Paid by vnpay";
+      // vnp_Params["vnp_OrderReceiveName"] = req.body.name;
+      // vnp_Params["vnp_OrderReceiveAddress"] = req.body.address;
       if (
         orderType !== null &&
         orderType !== "" &&
@@ -181,7 +185,9 @@ const orderCtrl = {
         vnp_Params["vnp_OrderType"] = orderType;
       }
       vnp_Params["vnp_Amount"] = amount * 100;
-      vnp_Params["vnp_ReturnUrl"] = `${returnUrl}?voucherCode=${voucherCode}`;
+      vnp_Params[
+        "vnp_ReturnUrl"
+      ] = `${returnUrl}?receiveName=${reveiveName}&receiveAddress=${receiveAddress}&voucherCode=${voucherCode}`;
       vnp_Params["vnp_IpAddr"] = ipAddr;
       vnp_Params["vnp_CreateDate"] = createDate;
       if (
@@ -202,6 +208,7 @@ const orderCtrl = {
       var signed = hmac.update(new Buffer(signData, "utf-8")).digest("hex");
       vnp_Params["vnp_SecureHash"] = signed;
       vnpUrl += "?" + querystring.stringify(vnp_Params, { encode: false });
+      console.log(vnpUrl, "VNPAYURL");
       res.json({ vnpUrl: vnpUrl });
     } catch (err) {
       return res.status(500).json({ msg: err.message });
