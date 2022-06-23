@@ -18,7 +18,7 @@ const AnalyticCtrl = {
       ).filtering();
 
       const { start, end } = req.query;
-
+      console.log(start, end);
       const totalOrders = new APIfeatures(
         Orders.find({
           // status: 5,
@@ -54,6 +54,10 @@ const AnalyticCtrl = {
         categories: categories,
         orders: orders,
         vouchers: vouchers,
+        date: {
+          from: start ? new Date(start) : new Date(1900, 01, 01),
+          to: end ? new Date(end) : new Date(2200, 01, 01),
+        },
         msg: "Get Analytics success",
       });
     } catch (err) {
