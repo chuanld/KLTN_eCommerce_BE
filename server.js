@@ -9,6 +9,8 @@ const cookieParser = require("cookie-parser");
 const path = require("path");
 
 const Comments = require("./models/commentModel");
+const Users = require("./models/userModel");
+const Logs = require("./models/logModel");
 
 const app = express();
 app.use(express.json());
@@ -58,11 +60,75 @@ app.use("/api", require("./routes/productRouter"));
 app.use("/api", require("./routes/orderRouter"));
 app.use("/api", require("./routes/commentRouter"));
 app.use("/api", require("./routes/analyticRouter"));
+app.use("/api", require("./routes/logRouter"));
 
 //Connet SocketIO
 let users = [];
+
+let onlineUsers = [];
+const addNewUser = (newUser, socketId) => {
+  if (!onlineUsers.some((user) => user.id === newUser.id)) {
+    onlineUsers.push({ ...newUser, socketId });
+  } else {
+    onlineUsers = onlineUsers.filter((user) => user.id !== newUser.id);
+
+    onlineUsers.push({ ...newUser, socketId });
+  }
+
+  // const check = onlineUsers.every((onlUser) => onlUser.socketId !== socketId);
+  // if (check) {
+  //   onlineUsers.push({ ...newUser, socketId });
+  // }
+};
+const removeUser = (socketId) => {
+  onlineUsers = onlineUsers.filter((user) => user.socketId !== socketId);
+};
+const getAdmin = () => {
+  return onlineUsers.find((user) => user.role === "admin");
+};
+
+const johnRoomAdmin = () => {};
+
 io.on("connection", (socket) => {
-  // console.log(socket.id + ' connected.')
+  console.log(socket.id + " connected.");
+  // isAccessing on Web
+  socket.on("newUser", async (user) => {
+    const account = await Users.findById(user.id).select("_id name role");
+    const newUser = {
+      id: account._id.toString(),
+      name: account.name,
+      role: account.role === 1 ? "admin" : "user",
+      room: account.role === 1 ? "admin-r1" : undefined,
+    };
+
+    addNewUser(newUser, socket.id);
+    if (newUser.role === "admin") {
+      socket.join("admin-r1");
+    }
+    console.log(onlineUsers);
+  });
+
+  // Listen Notification
+  socket.on(
+    "sendNotificationRating",
+    async ({ senderType, senderUser, senderData, senderTime, senderObj }) => {
+      const receiveAdmin = getAdmin();
+
+      const senderBy = {
+        ...senderUser,
+        role: receiveAdmin.role,
+      };
+      const newLog = new Logs({
+        logType: senderType,
+        logBy: senderBy,
+        logAction: senderData,
+        logObject: senderObj,
+        createdAt: senderTime,
+      });
+      await newLog.save();
+      io.to("admin-r1").emit("getNotification-admin", newLog);
+    }
+  );
 
   //JoinRoom
   socket.on("johnBookDetail", (id) => {
@@ -124,6 +190,8 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect ", () => {
     console.log(socket.id + " disconnected.");
+    socket.leave("admin-r1");
+    removeUser(socket.id);
   });
 });
 //Connect to database (mongodb)

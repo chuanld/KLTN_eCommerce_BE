@@ -10,6 +10,7 @@ router
 
 router
   .route("/category/:id")
+  .get(categoryCtrl.getCategoryById)
   .delete(auth, authAdmin, categoryCtrl.deleteCategory)
   .put(auth, authAdmin, categoryCtrl.updateCategory);
 

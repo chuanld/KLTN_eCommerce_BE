@@ -1,10 +1,20 @@
 const Category = require("../models/categoryModel");
+const Products = require("../models/productModel");
 
 const categoryCtrl = {
   getCategories: async (req, res) => {
     try {
       const categories = await Category.find();
       res.json(categories);
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+  getCategoryById: async (req, res) => {
+    try {
+      const category = await Category.findById(req.params.id);
+      if (!category) return res.status(400).json({ msg: "Category not found" });
+      res.json({ category });
     } catch (err) {
       return res.status(500).json({ msg: err.message });
     }
@@ -38,6 +48,11 @@ const categoryCtrl = {
       // res.json({ msg: "Delete category successfully!" });
 
       //Delete category by id
+      const products = await Products.find({ category: req.params.id });
+      if (products.length > 0)
+        return res
+          .status(400)
+          .json({ msg: "This category already exists contain product" });
       await Category.findByIdAndDelete(req.params.id);
       res.json({ msg: "Delete category successfully!" });
     } catch (err) {
