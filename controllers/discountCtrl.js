@@ -1,5 +1,5 @@
-const Vouchers = require('../models/voucherModel')
-const Products = require('../models/productModel')
+const Vouchers = require("../models/voucherModel");
+const Products = require("../models/productModel");
 
 const discountCtrl = {
   getVouchers: async (req, res) => {
@@ -8,60 +8,60 @@ const discountCtrl = {
       const features = new APIfeatures(Vouchers.find(), req.query)
         .filtering()
         .sorting()
-        .paginating()
+        .paginating();
 
       const countCalc = new APIfeatures(Vouchers.find(), req.query)
         .filtering()
-        .sorting()
-      const countTotal = await countCalc.query.count()
-      const vouchers = await features.query //Product.find() if not add features for product page
+        .sorting();
+      const countTotal = await countCalc.query.count();
+      const vouchers = await features.query; //Product.find() if not add features for product page
 
       res.json({
         totalResult: countTotal,
         result: vouchers.length,
         page: req.query.page ? parseInt(req.query.page) : 1,
         vouchers,
-      })
+      });
     } catch (err) {
-      return res.status(500).json({ msg: err.message })
+      return res.status(500).json({ msg: err.message });
     }
   },
   checkValidDiscount: async (req, res) => {
     try {
-      const { voucherCode } = req.body
-      console.log(voucherCode)
-      const voucher = await Vouchers.findOne({ voucherCode })
-      if (!voucher) return res.status(400).json({ msg: 'Voucher invalid' })
+      const { voucherCode } = req.body;
+      console.log(voucherCode);
+      const voucher = await Vouchers.findOne({ voucherCode });
+      if (!voucher) return res.status(400).json({ msg: "Voucher invalid" });
       if (voucher.voucherExpire.toISOString() < new Date().toISOString()) {
-        return res.status(400).json({ msg: 'Voucher expired.' })
+        return res.status(400).json({ msg: "Voucher expired." });
       }
-      res.json({ msg: 'Voucher activated!', voucher })
+      res.json({ msg: "Voucher activated!", voucher });
     } catch (err) {
-      return res.status(500).json({ msg: err.message })
+      return res.status(500).json({ msg: err.message });
     }
   },
   getAllProductsDiscount: async (req, res) => {
     try {
-      const allproducts = await Products.find()
-      const voucher = await Vouchers.findById('624695696e0bbcd712c80369')
-      let ListProduct = []
+      const allproducts = await Products.find();
+      const voucher = await Vouchers.findById("624695696e0bbcd712c80369");
+      let ListProduct = [];
       allproducts.forEach((product) => {
         voucher.voucherProductCategory.forEach((v) => {
-          if (product.category === v) ListProduct.push(product)
-        })
-      })
-      res.json({ ListProduct, total: ListProduct.length })
+          if (product.category === v) ListProduct.push(product);
+        });
+      });
+      res.json({ ListProduct, total: ListProduct.length });
     } catch (err) {
-      return res.status(500).json({ msg: err.message })
+      return res.status(500).json({ msg: err.message });
     }
   },
   getProductById: async (req, res) => {
     try {
-      const product = await Products.findById(req.params.id)
-      if (!product) return res.status(400).json({ msg: 'Product not found' })
-      res.json({ product })
+      const product = await Products.findById(req.params.id);
+      if (!product) return res.status(400).json({ msg: "Product not found" });
+      res.json({ product });
     } catch (err) {
-      return res.status(500).json({ msg: err.message })
+      return res.status(500).json({ msg: err.message });
     }
   },
   createVoucher: async (req, res) => {
@@ -76,8 +76,15 @@ const discountCtrl = {
         voucherProductCategory,
         voucherProductAuthor,
         createdBy,
-      } = req.body
+        voucherEffect,
+        voucherExpire,
+      } = req.body;
 
+      if (voucherEffect >= voucherExpire) {
+        return res
+          .status(400)
+          .json({ msg: "Invalid date. Effect must be greater than Expire" });
+      }
       const newVoucher = new Vouchers({
         voucherCode,
         voucherDiscount,
@@ -88,11 +95,13 @@ const discountCtrl = {
         voucherProductCategory,
         voucherProductAuthor,
         createdBy,
-      })
-      await newVoucher.save()
-      res.json({ msg: 'Create voucher successfully!' })
+        voucherEffect: voucherEffect ? voucherEffect : new Date().toISOString(),
+        voucherExpire,
+      });
+      await newVoucher.save();
+      res.json({ msg: "Create voucher successfully!" });
     } catch (err) {
-      return res.status(500).json({ msg: err.message })
+      return res.status(500).json({ msg: err.message });
     }
   },
   updateVoucher: async (req, res) => {
@@ -109,13 +118,13 @@ const discountCtrl = {
         modifiedBy,
         voucherEffect,
         voucherExpire,
-      } = req.body
-      console.log(voucherEffect, voucherExpire)
-      const voucher = await Vouchers.findById(req.params.id)
+      } = req.body;
+
+      const voucher = await Vouchers.findById(req.params.id);
       if (voucherEffect >= voucherExpire) {
         return res
           .status(400)
-          .json({ msg: 'Invalid date. Effect must be greater than Expire' })
+          .json({ msg: "Invalid date. Effect must be greater than Expire" });
       }
       // if (voucher.voucherEffect) {
       //   if (voucherExpire <= voucher.voucherEffect.toISOString()) {
@@ -146,61 +155,61 @@ const discountCtrl = {
           voucherEffect,
           voucherExpire,
         }
-      )
+      );
 
-      res.json({ msg: 'Update voucher successfully!' })
+      res.json({ msg: "Update voucher successfully!" });
     } catch (err) {
-      return res.status(500).json({ msg: err.message })
+      return res.status(500).json({ msg: err.message });
     }
   },
   deleteVoucher: async (req, res) => {
     try {
-      await Vouchers.findByIdAndDelete({ _id: req.params.id })
-      res.json({ msg: 'Delete voucher  successfully!' })
+      await Vouchers.findByIdAndDelete({ _id: req.params.id });
+      res.json({ msg: "Delete voucher  successfully!" });
     } catch (err) {
-      return res.status(500).json({ msg: err.message })
+      return res.status(500).json({ msg: err.message });
     }
   },
-}
+};
 
 // Filter, sort and paginate
 class APIfeatures {
   constructor(query, queryString) {
-    this.query = query
-    this.queryString = queryString
+    this.query = query;
+    this.queryString = queryString;
   }
   filtering() {
-    const queryObj = { ...this.queryString } //queryString = req.body
+    const queryObj = { ...this.queryString }; //queryString = req.body
 
-    const excludedFields = ['page', 'sort', 'limit', 'skipp']
-    excludedFields.forEach((el) => delete queryObj[el])
+    const excludedFields = ["page", "sort", "limit", "skipp"];
+    excludedFields.forEach((el) => delete queryObj[el]);
 
-    let queryStr = JSON.stringify(queryObj)
+    let queryStr = JSON.stringify(queryObj);
     queryStr = queryStr.replace(
       /\b(gte|gt|lt|lte|regex)\b/g,
-      (match) => '$' + match
-    )
+      (match) => "$" + match
+    );
 
-    this.query.find(JSON.parse(queryStr))
+    this.query.find(JSON.parse(queryStr));
 
-    return this
+    return this;
   }
   sorting() {
     if (this.queryString.sort) {
-      const sortBy = this.queryString.sort.split(',').join('')
-      this.query = this.query.sort(sortBy)
+      const sortBy = this.queryString.sort.split(",").join("");
+      this.query = this.query.sort(sortBy);
     } else {
-      this.query = this.query.sort('-createdAt')
+      this.query = this.query.sort("-createdAt");
     }
-    return this
+    return this;
   }
   paginating() {
-    const page = this.queryString.page * 1 || 1
-    const limit = this.queryString.limit * 1 || 9
-    const skip = (page - 1) * limit
-    this.query = this.query.skip(skip).limit(limit)
+    const page = this.queryString.page * 1 || 1;
+    const limit = this.queryString.limit * 1 || 9;
+    const skip = (page - 1) * limit;
+    this.query = this.query.skip(skip).limit(limit);
 
-    return this
+    return this;
   }
 }
-module.exports = discountCtrl
+module.exports = discountCtrl;
