@@ -29,4 +29,15 @@ router.patch(
   "/products/update_category_all",
   productCtrl.updateCategoryAllProduct
 );
+router.patch(
+  "/products/update_inventory_all",
+  auth,
+  authAdmin,
+  productCtrl.updateInventoryAllProduct
+);
+
+router.get("/test1", productCtrl.getInventoryPopulate);
+router.post("/inventory", productCtrl.addInventory);
+router.get("/inventory", productCtrl.getInventory);
+
 module.exports = router;

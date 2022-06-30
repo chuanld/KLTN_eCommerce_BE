@@ -29,7 +29,7 @@ const discountCtrl = {
   checkValidDiscount: async (req, res) => {
     try {
       const { voucherCode } = req.body;
-      console.log(voucherCode);
+
       const voucher = await Vouchers.findOne({ voucherCode });
       if (!voucher) return res.status(400).json({ msg: "Voucher invalid" });
       if (voucher.voucherExpire.toISOString() < new Date().toISOString()) {

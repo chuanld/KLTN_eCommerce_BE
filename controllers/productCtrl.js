@@ -1,5 +1,6 @@
 const Products = require("../models/productModel");
 const Categories = require("../models/categoryModel");
+const Inventories = require("../models/inventoryModel");
 const Banners = require("../models/bannerModel");
 
 // CRUD with products
@@ -42,7 +43,21 @@ const productCtrl = {
     try {
       const product = await Products.findById(req.params.id);
       if (!product) return res.status(400).json({ msg: "Product not found" });
-      res.json({ product });
+      const inventories = await Inventories.aggregate([
+        {
+          $match: {
+            productId: req.params.id,
+          },
+        },
+      ]);
+      const total = inventories.reduce((prev, item) => {
+        return prev + item.productStock;
+      }, 0);
+      res.json({
+        product,
+        inventories,
+        totalStock: total,
+      });
     } catch (err) {
       return res.status(500).json({ msg: err.message });
     }
@@ -50,6 +65,7 @@ const productCtrl = {
   createProduct: async (req, res) => {
     try {
       const {
+        createdBy,
         product_id,
         title,
         price,
@@ -68,6 +84,7 @@ const productCtrl = {
       if (product)
         return res.status(400).json({ msg: "This book is already exist!" });
 
+      //create Product
       const newProduct = new Products({
         product_id,
         title,
@@ -79,9 +96,38 @@ const productCtrl = {
         author,
         publisher,
         sold,
-        stock,
       });
       await newProduct.save();
+
+      const productDetail = await Products.findOne({ product_id });
+      //Create Inventory
+      const newInventory = new Inventories({
+        productId: productDetail._id.toString(),
+        productStock: stock,
+        // productSold: sold,
+        importBy: createdBy,
+      });
+      await newInventory.save();
+
+      //Calc totalStock
+      const inventories = await Inventories.aggregate([
+        {
+          $match: {
+            productId: productDetail._id.toString(),
+          },
+        },
+      ]);
+      const total = await inventories.reduce((prev, item) => {
+        return prev + item.productStock;
+      }, 0);
+
+      await Products.findByIdAndUpdate(
+        { _id: productDetail._id },
+        {
+          totalStock: total,
+        }
+      );
+
       res.json({ msg: "Create product successfully!" });
     } catch (err) {
       return res.status(500).json({ msg: err.message });
@@ -102,7 +148,51 @@ const productCtrl = {
         stock,
         discount,
       } = req.body;
+      // const user = await Users.findById(req.user.id).select("name email");
+
       if (!images) return res.status(400).json({ msg: "No image upload" });
+      const product = await Products.findOne({ _id: req.params.id });
+      if (!product) return res.status(400).json({ msg: "Book is not exist" });
+
+      if (stock === "") {
+        await Products.findOneAndUpdate(
+          { _id: req.params.id },
+          {
+            title,
+            price,
+            content,
+            description,
+            images,
+            category,
+            author,
+            publisher,
+            sold,
+            discount,
+          }
+        );
+
+        return res.json({ msg: "Update product successfully!" });
+      }
+      //Create Inventory
+      const newInventory = new Inventories({
+        productId: product._id.toString(),
+        productStock: stock,
+        // productSold: sold,
+        importBy: req.user.id,
+      });
+      await newInventory.save();
+
+      //Calc totalStock
+      const inventories = await Inventories.aggregate([
+        {
+          $match: {
+            productId: product._id.toString(),
+          },
+        },
+      ]);
+      const total = await inventories.reduce((prev, item) => {
+        return prev + item.productStock;
+      }, 0);
 
       await Products.findOneAndUpdate(
         { _id: req.params.id },
@@ -118,6 +208,7 @@ const productCtrl = {
           sold,
           stock,
           discount,
+          totalStock: total,
         }
       );
 
@@ -249,6 +340,40 @@ const productCtrl = {
       return res.status(500).json({ msg: err.message });
     }
   },
+  updateInventoryAllProduct: async (req, res) => {
+    try {
+      const products = await Products.find();
+      if (products.length === 0) return res.status(400).json({ msg: "fail" });
+
+      // for (const product of products) {
+      //   const newInventory = new Inventories({
+      //     productId: product._id.toString(),
+      //     productStock: product.stock + product.sold,
+      //     importBy: req.user.id,
+      //   });
+      //   await newInventory.save();
+      // }
+      // const inventories = await Inventories.find();
+      // if (inventories.length === 0)
+      //   return res.status(400).json({ msg: "fail" });
+
+      // for (const product of products) {
+      //   // for (const inventory of inventories) {
+      //   //   if (inventory.productId === product._id.toString()) {
+      //   //     await Products.findByIdAndUpdate(
+      //   //       { _id: product._id },
+      //   //       { totalStock: inventory.productStock - product.sold }
+      //   //     );
+      //   //   }
+      //   // }
+
+      // }
+
+      await Products.updateMany({}, { $unset: { stock: "" } });
+
+      res.json({ msg: "success" });
+    } catch (err) {}
+  },
   evenDiscount: async (req, res) => {
     try {
       const { action } = req.body.formValues;
@@ -273,6 +398,71 @@ const productCtrl = {
         );
         return res.json({ msg: `Discount Books of ${category} success` });
       }
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+  addInventory: async (req, res) => {
+    try {
+      const { productId, stock, createdBy } = req.body;
+      const newInventory = new Inventories({
+        productId,
+        productStock: stock,
+        importBy: createdBy,
+      });
+      await newInventory.save();
+      res.json({ msg: "success" });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+  getInventory: async (req, res) => {
+    try {
+      const features = new APIfeatures(Inventories.find(), req.query)
+        .filtering()
+        .sorting()
+        .paginating();
+      const countCalc = new APIfeatures(Inventories.find(), req.query)
+        .filtering()
+        .sorting();
+      const countTotal = await countCalc.query.count();
+      const inventories = await features.query;
+      res.json({
+        totalResult: countTotal,
+        result: inventories.length,
+        page: req.query.page ? parseInt(req.query.page) : 1,
+        inventories,
+      });
+    } catch (err) {}
+  },
+  updateStockAllProduct: async (req, res) => {
+    try {
+      const products = await Products.find();
+      if (products.length === 0)
+        return res.status(400).json({ msg: "fail-prod" });
+
+      for (const product of products) {
+        await Products.findByIdAndUpdate(
+          { _id: product._id },
+          { stock: 60 - product.sold }
+        );
+      }
+      res.json({ msg: "success" });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+  getInventoryPopulate: async (req, res) => {
+    try {
+      const product = await Products.findOne({
+        _id: "62bd5723a1d62abe2f257e2b",
+      })
+        .populate("stockInv")
+        .exec();
+      // const inv = await Inventories.findOne({
+      //   _id: "62bd4d59031262e8212b6d9b",
+      // }).populate("productId");
+      res.json({ product });
     } catch (err) {
       return res.status(500).json({ msg: err.message });
     }

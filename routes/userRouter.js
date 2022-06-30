@@ -24,6 +24,8 @@ router.patch("/change", auth, userCtrl.changePassword);
 
 router.get("/infor", auth, userCtrl.getUser);
 
+router.get("/all_users", auth, authAdmin, userCtrl.getAllUserLists);
+
 //new
 router.get("/all_infor", auth, authAdmin, userCtrl.getAllUsers);
 router.get("/infor_byId/:id", auth, authAdmin, userCtrl.getInfoById);

@@ -87,12 +87,33 @@ const orderCtrl = {
               prev + ((item.price * item.discount) / 100) * item.quantity;
         }, 0);
       }
-      console.log(orderID, address, name, option, voucherCode);
+
       let status = 0;
       if (orderID.includes("PAYID") || orderID.includes("VnPay")) {
         status = 5;
       }
       const { _id, email } = user;
+
+      for (const crt of cart) {
+        // await Products.findByIdAndUpdate(
+        //   { _id: product._id },
+        //   { price: product.price * 1000 }
+        // );
+        const product = await Products.findById(crt._id);
+        if (!product) {
+          return res.status(400).json({ msg: `${crt.title} not found` });
+        }
+        if (product.totalStock < crt.quantity) {
+          return res.status(400).json({ msg: `${crt.title} out of stock` });
+        }
+      }
+
+      cart.filter((item) => {
+        calcStock(item._id, item.quantity);
+        sold(item._id, item.quantity, item.sold);
+        return;
+      });
+
       const newOrder = new Orders({
         user_id: _id,
         name,
@@ -104,11 +125,8 @@ const orderCtrl = {
         voucher: voucher ?? "not applied",
         status: status,
       });
-
-      cart.filter((item) => {
-        return sold(item._id, item.quantity, item.sold);
-      });
       await newOrder.save();
+
       res.json({ msg: "Payment success", cart });
     } catch (err) {
       return res.status(500).json({ msg: err.message });
@@ -286,10 +304,20 @@ const orderCtrl = {
 };
 
 const sold = async (id, quantity, oldSold) => {
+  const product = await Products.findOne({ _id: id });
   await Products.findOneAndUpdate(
     { _id: id },
     {
-      sold: quantity + oldSold,
+      sold: product.sold + quantity,
+    }
+  );
+};
+const calcStock = async (id, quantity) => {
+  const product = await Products.findOne({ _id: id });
+  await Products.findByIdAndUpdate(
+    { _id: id },
+    {
+      totalStock: product.totalStock - quantity,
     }
   );
 };

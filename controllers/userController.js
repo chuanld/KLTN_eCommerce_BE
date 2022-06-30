@@ -303,6 +303,16 @@ const userCtrl = {
       return res.status(500).json({ msg: err.message });
     }
   },
+  getAllUserLists: async (req, res) => {
+    try {
+      const allusers = await Users.find();
+      res.json({
+        allusers,
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
   createUser: async (req, res) => {
     try {
       const { name, email, address, phone, role, password } = req.body;
@@ -409,6 +419,8 @@ const userCtrl = {
       const product = await Products.findOne({ _id: productId });
       if (!product)
         return res.status(400).json({ msg: "Product does not exist" });
+      if (product.stock === 0)
+        return res.status(400).json({ msg: "Product out of stock" });
       if (user.cart.length === 0) {
         var newProduct = JSON.parse(JSON.stringify(product));
         newProduct.quantity = qty;
