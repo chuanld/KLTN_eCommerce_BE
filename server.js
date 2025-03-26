@@ -21,6 +21,7 @@ app.use(
     origin: [
       "http://localhost:3000",
       "https://kltn-bookstore-website.vercel.app",
+      "kltn-e-commerce-be.vercel.app"
     ],
   })
 );
@@ -28,6 +29,7 @@ app.use((req, res, next) => {
   const allowedOrigins = [
     "http://localhost:3000",
     "https://kltn-bookstore-website.vercel.app",
+    "kltn-e-commerce-be.vercel.app"
   ];
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
